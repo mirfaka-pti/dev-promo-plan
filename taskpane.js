@@ -39,10 +39,10 @@ Office.onReady(async (info) => {
     }
 
     const isPromoPlan = await checkIsPromoPlanFile();
-    const userName = await getCurrentUserName();
+    const userName = await getCurrentUserName2();
     if (!isPromoPlan) {
       showError(
-        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan). User: "${userName}"`
+        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan). User: ${userName}`
       );
       return;
     }
@@ -70,6 +70,23 @@ async function checkIsPromoPlanFile() {
   return matched;
 }
 
+async function getCurrentUserName2() {
+  // 1) Coba SSO. Ini hanya akan berhasil kalau manifest sudah dikonfigurasi
+  //    <WebApplicationInfo> + App Registration Azure AD sudah dibuat.
+  //    Kalau belum, ini akan gagal secara diam-diam dan lanjut ke fallback.
+  try {
+    if (window.OfficeRuntime && OfficeRuntime.auth) {
+      const tokenEncoded = await OfficeRuntime.auth.getAccessToken({ allowSignInPrompt: false });
+      const claims = parseJwt(tokenEncoded);
+      const name = claims.name || claims.preferred_username;
+      if (name) return name;
+    }
+  } catch (e) {
+    // SSO tidak tersedia/tidak dikonfigurasi -> lanjut ke fallback di bawah
+  }
+  const finalName = "Unknown User";
+  return finalName;
+}
 // ===================== UI state helpers =====================
 
 function showError(message) {
