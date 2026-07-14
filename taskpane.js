@@ -39,9 +39,10 @@ Office.onReady(async (info) => {
     }
 
     const isPromoPlan = await checkIsPromoPlanFile();
+    const userName = await getCurrentUserName();
     if (!isPromoPlan) {
       showError(
-        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan).`
+        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan). User: "${userName}"`
       );
       return;
     }
