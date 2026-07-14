@@ -34,15 +34,19 @@ Office.onReady(async (info) => {
   try {
     const isExcel = info.host === Office.HostType.Excel;
     if (!isExcel) {
-      showError("Add-in ini hanya didukung di aplikasi Excel.");
+      showError("Add-in ini hanya didukung di aplikasi Excel.", {
+        fileId: null,
+        userName: null,
+      });
       return;
     }
 
-    const isPromoPlan = await checkIsPromoPlanFile();
-    const userName = await getCurrentUserName2();
-    if (!isPromoPlan) {
+    const { matched, actualFileId } = await checkIsPromoPlanFile();
+    if (!matched) {
+      const userName = await getCurrentUserName();
       showError(
-        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan). User: ${userName}`
+        `File yang sedang dibuka bukan file Promo Plan yang dikenali (ID "${FILE_ID_PROPERTY_KEY}" tidak cocok atau tidak ditemukan).`,
+        { fileId: actualFileId, userName }
       );
       return;
     }
@@ -50,7 +54,16 @@ Office.onReady(async (info) => {
     showMain();
     document.getElementById("createLogBtn").addEventListener("click", createLog);
   } catch (err) {
-    showError("Terjadi error saat memuat add-in: " + err.message);
+    let userName = null;
+    try {
+      userName = await getCurrentUserName();
+    } catch (e) {
+      // biarkan null kalau gagal juga
+    }
+    showError("Terjadi error saat memuat add-in: " + err.message, {
+      fileId: null,
+      userName,
+    });
   }
 });
 
@@ -58,42 +71,43 @@ Office.onReady(async (info) => {
 
 async function checkIsPromoPlanFile() {
   let matched = false;
+  let actualFileId = null;
   await Excel.run(async (context) => {
     const prop = context.workbook.properties.custom.getItemOrNullObject(FILE_ID_PROPERTY_KEY);
     prop.load("value");
     await context.sync();
 
     if (!prop.isNullObject) {
-      matched = String(prop.value) === EXPECTED_FILE_ID;
+      actualFileId = String(prop.value);
+      matched = actualFileId === EXPECTED_FILE_ID;
     }
   });
-  return matched;
+  return { matched, actualFileId };
 }
 
-async function getCurrentUserName2() {
-  // 1) Coba SSO. Ini hanya akan berhasil kalau manifest sudah dikonfigurasi
-  //    <WebApplicationInfo> + App Registration Azure AD sudah dibuat.
-  //    Kalau belum, ini akan gagal secara diam-diam dan lanjut ke fallback.
-  try {
-    if (window.OfficeRuntime && OfficeRuntime.auth) {
-      const tokenEncoded = await OfficeRuntime.auth.getAccessToken({ allowSignInPrompt: false });
-      const claims = parseJwt(tokenEncoded);
-      const name = claims.name || claims.preferred_username;
-      if (name) return name;
-    }
-  } catch (e) {
-    // SSO tidak tersedia/tidak dikonfigurasi -> lanjut ke fallback di bawah
-  }
-  const finalName = "Unknown User";
-  return finalName;
-}
 // ===================== UI state helpers =====================
 
-function showError(message) {
+function showError(message, meta = {}) {
   document.getElementById("checkingView").style.display = "none";
   document.getElementById("mainView").style.display = "none";
   document.getElementById("errorView").style.display = "block";
   document.getElementById("errorDetail").textContent = message;
+
+  const { fileId, userName } = meta;
+  const metaEl = document.getElementById("errorMeta");
+  const fileIdText = fileId ? fileId : "(tidak ditemukan)";
+  const userNameText = userName ? userName : "(tidak diketahui)";
+
+  metaEl.innerHTML = `
+    File ID terdeteksi: <b>${escapeHtml(fileIdText)}</b><br/>
+    User: <b>${escapeHtml(userNameText)}</b>
+  `;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function showMain() {
