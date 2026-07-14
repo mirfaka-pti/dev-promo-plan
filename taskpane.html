@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Automation Log</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root {
+    --green: #217346;
+    --green-dark: #14512F;
+    --border: #D1D1D1;
+    --text: #242424;
+    --text-secondary: #605E5C;
+    --error: #A4262C;
+    --error-bg: #FDF3F4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: #FAF9F8;
+  }
+  .titlebar {
+    background: var(--green);
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .content { padding: 16px 14px; }
+
+  /* ===== Checking state ===== */
+  #checkingView { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 13px; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--green);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== Error state ===== */
+  #errorView {
+    display: none;
+    background: var(--error-bg);
+    border: 1px solid var(--error);
+    border-radius: 4px;
+    padding: 14px;
+  }
+  #errorView h3 { margin: 0 0 6px; font-size: 14px; color: var(--error); }
+  #errorView p { margin: 0; font-size: 12px; color: var(--text); line-height: 1.5; }
+
+  /* ===== Main state ===== */
+  #mainView { display: none; }
+  #mainView p.desc { font-size: 12px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.5; }
+
+  button.primary {
+    width: 100%; height: 34px;
+    background: var(--green); color: #fff; border: none; border-radius: 2px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.primary:hover { background: var(--green-dark); }
+  button.primary:disabled { background: #C8C6C4; cursor: not-allowed; }
+
+  #resultMsg { margin-top: 10px; font-size: 12px; line-height: 1.5; white-space: pre-line; }
+  #resultMsg.ok { color: var(--green-dark); }
+  #resultMsg.error { color: var(--error); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translate(-50%, 12px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #212121;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    max-width: calc(100% - 32px);
+    z-index: 1000;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  .toast .toast-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+  }
+  .toast.success .toast-icon { color: #6CCB5F; }
+  .toast.error .toast-icon { color: #F1707B; }
+</style>
+</head>
+<body>
+  <div class="titlebar">Automation Log</div>
+
+  <div class="content">
+
+    <div id="checkingView">
+      <div class="spinner"></div>
+      <span>Memeriksa aplikasi &amp; file...</span>
+    </div>
+
+    <div id="errorView">
+      <h3>Add-in tidak dapat digunakan</h3>
+      <p id="errorDetail"></p>
+    </div>
+
+    <div id="mainView">
+      <p class="desc">
+        Menambahkan baris log baru ke sheet <b>Automation Log</b> pada baris paling bawah.
+      </p>
+      <button class="primary" id="createLogBtn">Create Log</button>
+      <div id="resultMsg"></div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>
